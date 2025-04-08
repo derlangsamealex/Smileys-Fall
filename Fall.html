@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+    <head>
+		<link href="style.css" rel="stylesheet">
+    </head>
+    <body style="background:green; width:80%">
+    <div id=start><button onclick="start()">Start</button>
+    </div>
+    <div id=control style="position:absolute; left:100px; top:420px; display:none; z-Index:999;"><button ontouchstart="moveup()" style="left:120px"></button>
+<button ontouchstart=jump() ontouchend=v=0 style="left:-100px; width:150px;">jump</button> 
+<button ontouchstart="funcswitch()" id=shoot style="left:-100px; top:60px; width:150px;">shoot</button> 
+<button ontouchstart="funcswitch()" id=bounce style="left:-100px; top:60px; width:150px; display:none">bounce</button>     
+<button type="button" ontouchstart=moveleft=true ontouchend=moveleft=false style="left:60px; top:60px;"></button>
+<button type="button" ontouchstart=p.movedown()   ontouchend=p.movedownstop() style="left:120px; top:60px;"></button>
+<button type="button" ontouchstart=moveright=true ontouchend=moveright=false style="left:180px; top:60px;"></button>
+    </div>
+    <div id="parent" style="top:0; left:0; width:400px; height:400px; position:absolute; overflow:scroll; display:none;">
+      <canvas id="canevent" width=400 height=600 style="position:absolute; z-Index:2; left:0px; top:0px; display: none;">
+      </canvas> 
+      <canvas id="screenevent" width=400 height=600 style="position:absolute; z-Index:1000; left:0px; top:0px; display: none;">
+      </canvas> 
+      <canvas id="floor" width=400 height=400 style="position:absolute; z-Index: 0; left:0; top:0; display: none; background:white;">
+      </canvas> 
+      <canvas id="player" width=22 height=22 style="position:absolute; z-Index: 1; left:0; top:0; display: none;"> 
+      </canvas>
+      <canvas id="controlscreen" width=400 height=400 style="position: absolute; z-Index: 999; left:0; top:0; display:none;">
+      </canvas>
+    </div>
+    </body>
+	<script>
+var tmain,levellength;
+var moveleft=false,moveright=false,jumping=false;
+var weapon="shoot";
+var room=1;
+var parent=document.getElementById("parent");
+var floor=document.getElementById("floor");
+var screenevent=document.getElementById("screenevent");
+var canevent=document.getElementById("canevent");
+var canevent2d=canevent.getContext("2d");
+var floor2d=floor.getContext("2d");
+var canpl=document.getElementById("player");
+var control=document.getElementById("controlscreen");   
+onkeydown = function(event) {
+	switch(event.key) {
+		case "ArrowLeft":
+			moveleft = true;	
+		break;
+		case "ArrowRight":
+			moveright = true;
+		break;
+		case "ArrowUp":
+			moveup();
+		break;
+		case "ArrowDown":
+			p.movedown()
+		break;
+		case "x":
+		break;
+	}
+	if(event.keyCode == 32) {
+		jump();
+	}
+}
+onkeyup = function() {
+	switch(event.key) {
+		case "ArrowLeft":
+			moveleft=false; 
+		break;
+		case "ArrowRight":
+			moveright = false;
+		break;
+		case "ArrowDown":
+			p.movedownstop();
+		break;
+		case "x":
+		break;
+	}
+	if(event.keyCode == 32) {
+		v = 0;
+	}
+}
+function start() {
+    document.getElementById("start").style.display="none";
+    parent.style.display="inline";
+    control.style.display="inline";       
+    floor.style.display="inline";
+    canpl.style.display="inline";
+    canevent.style.display="inline";
+	document.getElementById("control").style.display="inline";
+    level();
+    tmain=setInterval(game,5);
+}
+var Player = class {
+    constructor (xposition,yposition,canvas,growth,floor) {
+        this.xposition = xposition;
+        this.yposition = yposition;
+        this.canvas = canvas;
+        this.growth = growth;
+        this.count=0;
+        this.ctx=canvas.getContext("2d");
+        this.position = yposition + growth; 
+        this.floor =floor;
+        this.a=0.04
+    }
+    playerposition(x,y) {
+        this.xposition=x;
+        this.yposition=y;
+        this.drawsmiley();
+    }       
+    fall(v) {
+        this.yposition+=v;  
+        this.drawsmiley();  
+    }
+    moveleft() {
+        this.xposition--;
+        this.drawsmiley();
+    }
+    moveright() {
+        this.xposition++;
+        this.drawsmiley();
+    }
+    movedown() {
+		this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+        this.ctx.save();
+        this.ctx.scale(1,0.5);       
+        this.yposition+=this.growth;
+        this.drawsmiley(); 
+    }
+    movedownstop() {
+        this.yposition-=this.growth;
+        this.ctx.restore();    
+        this.drawsmiley()
+    }
+    drawsmiley() {    
+		this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+		this.canvas.style.top=this.yposition-this.growth+"px";
+		if(this.xposition>200&&levellength>400&&this.xposition<levellength-200) {
+			parent.scrollLeft=this.xposition-200;     
+		}
+		else if(this.xposition>levellength-200) {
+			parent.scrollLeft=levellength-200;
+		} 
+		else {
+			parent.scrollLeft=0;       
+		}
+		this.canvas.style.left=this.xposition-this.growth+"px";
+		this.ctx.beginPath();     
+		this.ctx.fillStyle="yellow";
+		this.ctx.arc(11,11,10,0,Math.PI*2,true);   
+		this.ctx.fill();
+		this.ctx.stroke();
+		this.ctx.beginPath();     
+		this.ctx.fillStyle="black";
+		this.ctx.arc(8,8,1.2,0,Math.PI*2,true);   
+		this.ctx.fill();
+		this.ctx.beginPath();
+		this.ctx.arc(14,8,1.2,0,Math.PI*2,true);   
+		this.ctx.fill();
+		this.count++;
+		if(this.count<=40)
+		{
+			this.ctx.beginPath();
+			this.ctx.arc(11,12,3.3,Math.PI*0.8,Math.PI*0.2,true);
+			this.ctx.stroke();
+		}
+		else if(this.count<=80) {
+			this.ctx.beginPath();
+			this.ctx.arc(11,15.8,2.5,0,Math.PI*2,true);
+			this.ctx.fill();    
+			this.count==80?this.count=0:true;
+		}   
+    }
+}
+var p = new Player(20,270,canpl,10,floor)
+p.drawsmiley();         
+function level() {
+    switch (room) {
+		case 1:
+			levellength=400;    
+			floor.width=levellength;
+			floor2d.clearRect(0,0,floor.width,floor.height);
+			floor2d.fillStyle="black";
+			floor2d.fillRect(0,50,170,3);
+			floor2d.fillRect(200,80,50,3);
+			floor2d.fillRect(150,115,30,3);
+			floor2d.fillRect(200,150,50,3);
+			floor2d.fillRect(150,185,30,3);
+			floor2d.fillRect(200,220,50,3);
+			floor2d.fillRect(150,255,30,3);
+			floor2d.fillRect(200,290,50,3);
+			floor2d.fillRect(0,300,floor.width,15);
+			floor2d.fillStyle="rgba(2,4,2,"+254/255+")";
+			floor2d.fillRect(10,50,20,-20);
+		break;
+		case 2:
+			levellength=500;    
+			floor.width=levellength+10;
+			floor2d.clearRect(0,0,floor.width,floor.height);
+			floor2d.fillStyle="black";
+			floor2d.fillRect(0,50,170,3);
+			floor2d.fillRect(200,80,100,3);
+			floor2d.fillRect(320,80,150,3);
+			floor2d.fillStyle="rgba(2,4,2,"+254/255+")";
+			floor2d.fillRect(10,50,20,-20);
+			floor2d.fillStyle="rgba(3,32,4,"+254/255+")";
+			floor2d.fillRect(450,80,20,-20);
+		break;
+		case 3:
+			floor2d.clearRect(0,0,floor.width,floor.height); parent.scrollLeft=0;
+			levellength=400;    
+			floor.width=levellength;
+			floor2d.fillRect(0,350,floor.width,15);
+			//floor2d.fillStyle="rgba(44,2,2,"+254/255+")";
+			//floor2d.fillRect(10,350,20,-20);
+		break;
+    }
+}
+function moveup() {
+	if(floor2d.getImageData(p.xposition,(p.yposition).toFixed(0),1,1).data[3]==254) {
+		colorchange();    
+    }
+}
+function jump() {    
+    !falling?v=-2:v=v; 
+}
+function funcswitch() {
+	switch (weapon)
+    {
+        case 'shoot':
+			document.getElementById("shoot").style.display="none";
+			document.getElementById("bounce").style.display="inline";
+			weapon="bounce";
+        break;
+        case 'bounce':
+			document.getElementById("bounce").style.display="none"; 
+			document.getElementById("shoot").style.display="inline";   
+			weapon="shoot";    
+		break;
+    }        
+}
+var v=0,a=0.04,falling;
+var tevent;
+var xpos,ypos,xstep,ystep,shooting=false,abounce;
+function game() {
+    p.fall(v);
+    moveright?p.moveright():true; 
+    moveleft?p.moveleft():true;
+    if(floor2d.getImageData(p.xposition,(p.yposition+p.growth).toFixed(0),1,1).data[3]==255&&floor2d.getImageData(p.xposition,(p.yposition+p.growth).toFixed(0),1,1).data[2]==0) {
+        v=0;
+        falling=false;
+    }
+    else {
+        falling=true;
+        v+=a;
+    }
+    if(p.yposition>=floor.width) {
+        p.playerposition(50,0,0);
+        floor.style.left=0+"px";
+    } 
+    if(shooting) {
+		switch (weapon) {
+			case 'shoot':
+				shoot();    
+			break;
+			case 'bounce':
+				bounce();
+			break;
+		}   
+    }
+}
+function colorchange() {
+    var trans=0,a=0;  
+    screenevent.style.display="inline";
+    tevent=setInterval(colorchange,20);  
+    function colorchange() {
+		if(trans<1&&a==0) {
+			trans+=0.05;
+		}
+		else {
+			if(a==0) {
+				room=floor2d.getImageData(p.xposition,(p.yposition).toFixed(0),1,1).data[2];
+				p.playerposition(floor2d.getImageData(p.xposition,(p.yposition).toFixed(0),1,1).data[0]*10,floor2d.getImageData(p.xposition,(p.yposition).toFixed(0),1,1).data[1]*10,0);
+				level();     
+				a=1;
+			}  
+			trans-=0.05;
+			if(trans<=0) {
+				clearInterval(tevent);    
+				screenevent.style.display="none";     
+			}  
+		}
+		color="rgba(0,0,0,"+trans+")";
+		screenevent.style.background=color; 
+    }
+}
+///////////////touch/////
+window.onload = function() {
+	control.ontouchstart = function(event) {  
+		if(shooting==false) {
+			abounce=1;
+			shooting=true;
+			xpos=p.xposition;
+			ypos=p.yposition;
+			var xsoll=event.touches[0].clientX;
+			var ysoll=event.touches[0].clientY;
+			var deltax=xsoll-xpos; 
+			var deltay=ysoll-ypos; 
+			var alpha=Math.abs(Math.atan(deltax/deltay));
+			xstep=Math.sin(alpha)*Math.abs(deltax)/deltax;
+			ystep=Math.cos(alpha)*Math.abs(deltay)/deltay;
+		}
+	}
+}
+function shoot() {
+    xpos+=xstep;
+    ypos+=ystep;  
+    canevent2d.fillStyle="red";
+    canevent2d.clearRect(0,0,floor.width,floor.height);
+    canevent2d.beginPath();     
+    canevent2d.arc(xpos,ypos,5,0,Math.PI*2,true);   
+    canevent2d.fill();
+    canevent2d.stroke();     
+    if(xpos<=0||xpos>=floor.width||ypos<=0||ypos>=floor.height-20) {
+		shooting=false;   
+		canevent2d.clearRect(0,0,floor.width,floor.height)      
+    }
+}
+function bounce() {
+    abounce+=0.01;
+    xpos+=1*xstep/Math.abs(xstep);
+    ypos+=abounce;  
+    canevent2d.fillStyle="green";
+    canevent2d.clearRect(0,0,floor.width,floor.height);
+    canevent2d.beginPath();     
+    canevent2d.arc(xpos,ypos,5,0,Math.PI*2,true);   
+    canevent2d.fill();
+    canevent2d.stroke();    
+    if(floor2d.getImageData(xpos.toFixed(0),ypos.toFixed(0),1,1).data[3]==255&&floor2d.getImageData(xpos.toFixed(0),ypos.toFixed(0),1,1).data[2]==0) {
+		abounce*=-0.6; 
+		ypos-=0.5;  
+    }
+    if(xpos<=0||xpos>=floor.width||ypos<=0||ypos>=floor.height-20) {
+		shooting=false;    
+		canevent2d.clearRect(0,0,floor.width,floor.height);      
+    }
+}	
+	</script>
+</html>      
